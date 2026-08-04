@@ -1,16 +1,20 @@
-from dotenv import load_dotenv
-import os
-
-load_dotenv()
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class Settings:
-    APP_NAME = os.getenv("APP_NAME", "AI Gateway")
-    APP_VERSION = os.getenv("APP_VERSION", "0.1.0")
-    DEBUG = os.getenv("DEBUG", "False").lower() == "true"
+class Settings(BaseSettings):
+    APP_NAME: str = "AI Gateway"
+    APP_VERSION: str = "0.1.0"
+    DEBUG: bool = False
 
-    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-    OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-5")
+    OPENROUTER_API_KEY: str
+    LLM_MODEL: str = "gpt-oss-20b:free"
+
+    BASE_URL: str = "https://openrouter.ai/api/v1"
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        extra="ignore",
+    )
 
 
 settings = Settings()
