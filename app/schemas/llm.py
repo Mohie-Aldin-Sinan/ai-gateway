@@ -8,3 +8,6 @@ class LLMResponse(BaseModel):
 class CalculatorInput(BaseModel):
     a: float
     b: float
+
+class SearchInput(BaseModel):
+    query: str

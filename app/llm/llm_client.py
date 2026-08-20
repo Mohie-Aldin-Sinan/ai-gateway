@@ -1,4 +1,3 @@
-import json
 import time
 from typing import TypeVar
 
@@ -13,8 +12,6 @@ from pydantic import BaseModel
 from app.core.config import settings
 from app.core.exceptions import LLMClientError
 from app.core.logging import logger
-from app.schemas.llm import CalculatorInput
-from app.tools.tool_registry import TOOLS
 
 T = TypeVar("T", bound=BaseModel)
 class LLMClient:
@@ -26,6 +23,17 @@ class LLMClient:
             base_url=settings.BASE_URL,
             timeout=settings.LLM_TIMEOUT,
         )
+
+    def create_response(self, input, tools=None):
+        kwargs = {
+            "model": settings.LLM_MODEL,
+            "input": input,
+        }
+
+        if tools is not None:
+            kwargs["tools"] = tools
+
+        return self.client.responses.create(**kwargs)
 
     def generate_response(self, prompt: str) -> str:
         return self._generate_response_with_retry(prompt)
@@ -135,62 +143,6 @@ class LLMClient:
                     "Failed to generate structured LLM response."
                 ) from e
 
-    def request_tool_call(self, prompt: str):
-        tools = [
-            {
-                "type": "function",
-                "name": "calculator",
-                "description": "Multiply two numbers.",
-                "parameters": CalculatorInput.model_json_schema(),
-            }
-        ]
 
-        response = self.client.responses.create(
-            model=settings.LLM_MODEL,
-            input=prompt,
-            tools=tools,
-        )
-
-        tool_call, result = self.execute_calculator_tool(response)
-
-        if tool_call:
-            follow_up = self.client.responses.create(
-                model=settings.LLM_MODEL,
-                input=[
-                    *response.output,
-                    {
-                        "type": "function_call_output",
-                        "call_id": tool_call.call_id,
-                        "output": str(result),
-                    },
-                ],
-            )
-
-            return follow_up.output_text
-
-        return response.output_text
-
-    def execute_tool(self, tool_call):
-        tool = TOOLS.get(tool_call.name)
-
-        if tool is None:
-            raise LLMClientError(
-                f"Unknown tool requested: {tool_call.name}"
-            )
-
-        arguments = json.loads(tool_call.arguments)
-
-        if tool_call.name == "calculator":
-            validated_arguments = CalculatorInput.model_validate(arguments)
-
-            return tool(
-                validated_arguments.a,
-                validated_arguments.b,
-            )
-
-        raise LLMClientError(
-            f"No argument validator configured for: {tool_call.name}"
-        )
     
-
 client = LLMClient()

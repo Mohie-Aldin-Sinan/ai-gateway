@@ -1,16 +1,13 @@
+from app.agents.agent_service import agent_service
 from app.core.config import settings
-from app.llm.llm_client import LLMClient, client
 from app.schemas.chat import ChatResponse
 
 
 class ChatService:
     """Business logic for chat."""
 
-    def __init__(self, llm_client: LLMClient):
-        self.llm_client = llm_client
-
     def generate_response(self, prompt: str) -> ChatResponse:
-        response = self.llm_client.generate_response(prompt)
+        response = agent_service.run(prompt)
 
         return ChatResponse(
             response=response,
@@ -18,4 +15,4 @@ class ChatService:
         )
 
 
-chat_service = ChatService(client)
+chat_service = ChatService()
