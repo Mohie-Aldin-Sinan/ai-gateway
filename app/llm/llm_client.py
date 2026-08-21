@@ -143,6 +143,18 @@ class LLMClient:
                     "Failed to generate structured LLM response."
                 ) from e
 
+    def stream_response(self, prompt: str):
+        response = self.client.responses.create(
+            model=settings.LLM_MODEL,
+            input=prompt,
+            stream=True,
+        )
+
+        for event in response:
+            if event.type == "response.output_text.delta":
+                yield event.delta
+    
+
 
     
 client = LLMClient()

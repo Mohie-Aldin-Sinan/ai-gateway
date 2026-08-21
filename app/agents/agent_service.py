@@ -1,15 +1,23 @@
-from app.llm.llm_client import client
-from app.tools.tool_executor import tool_executor
+from app.llm.llm_client import LLMClient
+from app.tools.tool_executor import ToolExecutor
 from app.tools.tool_registry import get_tool_definitions
 
 
 class AgentService:
     """Coordinates LLM calls and tool execution."""
 
+    def __init__(
+        self,
+        llm_client: LLMClient,
+        tool_executor: ToolExecutor,
+    ):
+        self.llm_client = llm_client
+        self.tool_executor = tool_executor
+
     def run(self, prompt: str) -> str:
         tools = get_tool_definitions()
 
-        response = client.create_response(
+        response = self.llm_client.create_response(
             prompt,
             tools=tools,
         )
@@ -26,9 +34,9 @@ class AgentService:
         if not tool_call:
             return response.output_text
 
-        result = tool_executor.execute(tool_call)
+        result = self.tool_executor.execute(tool_call)
 
-        follow_up = client.create_response(
+        follow_up = self.llm_client.create_response(
             [
                 *response.output,
                 {
@@ -42,4 +50,3 @@ class AgentService:
         return follow_up.output_text
 
 
-agent_service = AgentService()
